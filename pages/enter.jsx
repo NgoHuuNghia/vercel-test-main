@@ -1,7 +1,7 @@
 import { useContext, useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import debounce from 'lodash.debounce'
-import { doc, writeBatch, getDoc, getFirestore } from 'firebase/firestore'
+import { doc, writeBatch, getDoc, query, collection, addDoc, where, getDocs } from 'firebase/firestore'
 import { signInWithPopup, signInAnonymously, signOut } from 'firebase/auth'
 
 import { UserContext } from "@lib/context"
@@ -27,8 +27,32 @@ export default function Page({ }) {
 //* Sign in with google button
 function SignInButton() {
     const signInWithGoogle = async () => {
-        await signInWithPopup(auth, googleAuthProvider)
+        try {
+            await signInWithPopup(auth, googleAuthProvider)
+        } catch (error) {
+            console.error(err);
+            alert(err.message);
+        }
     }
+    // const signInWithGoogle = async () => {
+    //     try {
+    //         const res = await signInWithPopup(auth, googleAuthProvider);
+    //         const user = res.user;
+    //         const q = query(collection(firestore, "users"), where("uid", "==", user.uid));
+    //         const docs = await getDocs(q);
+    //         if (docs.docs.length === 0) {
+    //             await addDoc(collection(firestore, "users"), {
+    //                 uid: user.uid,
+    //                 name: user.displayName,
+    //                 authProvider: "google",
+    //                 email: user.email,
+    //             });
+    //         }
+    //     } catch (err) {
+    //         console.error(err);
+    //         alert(err.message);
+    //     }
+    // };
 
     return (
         <>
@@ -82,7 +106,7 @@ function UsernameForm() {
     const checkUsername = useCallback ( //* to use rebounce wrap in useCallBack allow this function to be memorized
         debounce(async (username) => { //? uses a npm helper fuction to optimize, not calling everytime we form change
             if (username.length >= 3) {
-                const ref = doc(getFirestore(), 'usernames', username)
+                const ref = doc(firestore(), 'usernames', username)
                 const snap = await getDoc(ref)
                 console.log('Firestore read executed!', snap.exists())
                 setIsValid(!snap.exists())
@@ -96,11 +120,11 @@ function UsernameForm() {
         e.preventDefault()
     
         // Create refs for both documents
-        const userDoc = doc(getFirestore(), 'users', user.uid)
-        const usernameDoc = doc(getFirestore(), 'usernames', formValue)
+        const userDoc = doc(firestore(), 'users', user.uid)
+        const usernameDoc = doc(firestore(), 'usernames', formValue)
     
         // Commit both docs together as a batch write.
-        const batch = writeBatch(getFirestore())
+        const batch = writeBatch(firestore())
         batch.set(userDoc, { username: formValue, photoURL: user.photoURL, displayName: user.displayName })
         batch.set(usernameDoc, { uid: user.uid })
     
